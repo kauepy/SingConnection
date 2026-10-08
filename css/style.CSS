@@ -1,0 +1,381 @@
+/* ===================== Paleta e variáveis globais ===================== */
+:root {
+  --bg: #0b1220;
+  --surface: #131c2e;
+  --surface-2: #1b2740;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  --accent: #f5a623;      /* âmbar — o sinal detectado */
+  --accent-2: #38bdf8;    /* ciano — o rastreamento da mão */
+
+  --text: #e8edf2;
+  --text-muted: #8ca0b3;
+  --text-faint: #56667a;
+
+  --danger: #f87171;
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-font-smoothing: antialiased; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+}
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+p { color: var(--text-muted); line-height: 1.6; margin: 0; }
+button { font-family: var(--font-body); cursor: pointer; border: none; }
+
+:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+/* ===================== Cabeçalho ===================== */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; }
+.brand-logo { width: 34px; height: auto; flex-shrink: 0; display: block; }
+.brand-name { white-space: nowrap; }
+
+.nav-links { display: flex; align-items: center; gap: 6px; }
+.nav-link {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.nav-link:hover, .nav-link.active { background: var(--surface-2); color: var(--text); }
+
+/* ===================== Layout principal ===================== */
+.layout {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 24px;
+  padding: 28px 32px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+
+/* ---- webcam ---- */
+.cam-card { display: flex; flex-direction: column; gap: 16px; }
+
+.cam-wrap {
+  position: relative;
+  background: #000;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+#video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+#overlay { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
+
+.cam-status-bar {
+  position: absolute;
+  top: 14px; left: 14px; right: 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.status-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(11, 18, 32, 0.75);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); }
+.status-pill.on .dot { background: var(--danger); animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.confidence-pill {
+  background: rgba(11, 18, 32, 0.75);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+/* Guia visual de posicionamento da mão - some assim que a captura começa
+   a encher o buffer, pra não atrapalhar a visão do usuário */
+.hand-guide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: rgba(245, 166, 35, 0.55);
+  padding: 12%;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.hand-guide.hidden { opacity: 0; }
+
+/* Confiança como barra de progresso, mais fácil de ler de longe (útil numa
+   demonstração/feira, onde a pessoa pode estar a alguns passos da tela) */
+.confidence-wrap {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(11, 18, 32, 0.75);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.confidence-bar { width: 56px; height: 6px; border-radius: 4px; background: rgba(255,255,255,0.12); overflow: hidden; }
+.confidence-bar-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.25s ease, background 0.25s ease; }
+.confidence-bar-fill.low { background: var(--danger); }
+.confidence-value { color: var(--accent); min-width: 2.6em; text-align: right; }
+
+/* Barra de progresso do lote de 30 frames sendo capturado */
+.capture-progress-wrap {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.35);
+}
+.capture-progress {
+  height: 100%;
+  width: 0%;
+  background: var(--accent-2);
+  transition: width 0.06s linear;
+}
+
+.cam-controls { display: flex; gap: 10px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  font-weight: 600;
+  transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent); color: #1a1305; }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border-strong); }
+.btn-ghost:hover { background: var(--surface-2); }
+.btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ---- último gesto reconhecido ---- */
+.last-sign-card { text-align: center; }
+.last-sign-label { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 14px; }
+.last-sign-value {
+  font-family: var(--font-display);
+  font-size: 4rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  min-height: 4.6rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.last-sign-value.empty { color: var(--text-faint); font-size: 1rem; font-weight: 500; font-family: var(--font-body); }
+
+/* ---- painel de texto traduzido ---- */
+.translation-card { display: flex; flex-direction: column; flex: 1; min-height: 220px; }
+.translation-card h3 { font-size: 0.95rem; margin-bottom: 14px; }
+
+.translation-output {
+  flex: 1;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--text);
+  min-height: 120px;
+  word-break: break-word;
+}
+.translation-output .cursor-blink {
+  display: inline-block;
+  width: 2px; height: 1.1em;
+  background: var(--accent-2);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+.translation-output.empty { color: var(--text-faint); font-family: var(--font-body); font-size: 0.9rem; }
+
+.translation-actions { display: flex; gap: 10px; margin-top: 14px; }
+
+.side-stack { display: flex; flex-direction: column; gap: 20px; }
+
+.translation-card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.translation-card-head h3 { margin-bottom: 0; }
+.char-counter { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-faint); }
+
+/* ---- seção "Como usar" ---- */
+.how-to-card { max-width: 1300px; margin: 0 auto 28px; }
+.how-to-card h3 { margin-bottom: 16px; }
+.how-to-list { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; color: var(--text-muted); line-height: 1.6; }
+.how-to-list li strong { color: var(--text); }
+
+.site-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 28px 24px;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+.footer-logo { width: 180px; height: auto; opacity: 0.9; }
+
+.box{
+  color: #000;
+  border: 2.5px solid rgba(0, 0, 0, 0);
+  background-color: rgb(255, 230, 0);
+  width: 140px;
+  height: 25px;
+  padding: 18px;
+  margin: 30px; /*espado de fora da caixa entre uma e outra*/
+  text-align: center;
+  font-size: 12px;
+}
+
+/* ===================== Responsividade ===================== */
+
+/* Tablet: empilha a câmera e os painéis laterais em coluna única */
+@media (max-width: 920px) {
+  .layout { grid-template-columns: 1fr; padding: 20px; }
+}
+
+/* Celular: reduz espaçamentos, permite os controles quebrarem linha,
+   e diminui o tamanho do "último gesto" pra não estourar a tela */
+@media (max-width: 560px) {
+  .topbar { padding: 12px 16px; }
+  .brand-name { font-size: 0.95rem; }
+  .nav-links { gap: 2px; }
+  .nav-link { padding: 6px 10px; font-size: 0.85rem; }
+
+  .layout { padding: 14px; gap: 16px; }
+  .card { padding: 16px; }
+
+  .cam-controls { flex-wrap: wrap; }
+  .btn { flex: 1 1 140px; padding: 12px 14px; }
+
+  .cam-status-bar { top: 10px; left: 10px; right: 10px; flex-wrap: wrap; gap: 6px; }
+  .confidence-bar { width: 40px; }
+
+  .last-sign-value { font-size: 2.6rem; min-height: 3.2rem; }
+
+  .translation-actions { flex-wrap: wrap; }
+  .translation-actions .btn { flex: 1 1 140px; }
+
+  .how-to-card { margin: 0 14px 20px; }
+}
+
+/* Celular pequeno: mais um ajuste fino pra telas abaixo de 380px */
+@media (max-width: 380px) {
+  .confidence-wrap { font-size: 0.65rem; padding: 5px 8px; gap: 5px; }
+  .confidence-bar { width: 30px; }
+  .status-pill { font-size: 0.68rem; padding: 5px 8px; }
+  .last-sign-value { font-size: 2.1rem; }
+  .footer-logo { width: 140px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 60px 24px;
+}
+
+h1 {
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.container .descricao {
+  text-align: center;
+  font-size: 1.05rem;
+  margin: 0 0 40px;
+}
+
+.container h2 {
+  font-size: 1.4rem;
+  margin-bottom: 20px;
+}
+
+.passos {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Sobrescreve o layout do .card genérico só dentro de .passos,
+   pra virar um card com ícone + texto lado a lado */
+.passos .card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.passos .card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+
+.passos .icone {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.passos .card h3 {
+  font-size: 1.05rem;
+  margin-bottom: 6px;
+}
+
+.passos .card p {
+  font-size: 0.92rem;
+}
+
+/* Responsivo: acompanha os breakpoints já existentes no arquivo */
+@media (max-width: 560px) {
+  .container { padding: 40px 16px; }
+  .passos .card { padding: 16px; gap: 12px; }
+  .passos .icone { width: 40px; height: 40px; font-size: 1.4rem; }
+}
